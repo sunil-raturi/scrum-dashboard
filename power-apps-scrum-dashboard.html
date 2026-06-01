@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Power Apps Rebuild Scrum Dashboard</title>
+  <title>AWS Rebuild Scrum Dashboard</title>
   <style>
     :root {
       --bg: #0f1117;
@@ -34,7 +34,7 @@
       z-index: 20;
       background: rgba(15, 17, 23, 0.96);
       border-bottom: 1px solid var(--border);
-      padding: 18px 22px;
+      padding: 28px 22px 18px;
     }
     main {
       padding: 22px;
@@ -68,9 +68,18 @@
       resize: vertical;
     }
     #dailyNote {
-      min-height: 220px;
-      max-height: 420px;
+      min-height: 100px;
+      max-height: 180px;
       overflow-y: auto;
+    }
+    .header-badge {
+      position: absolute;
+      top: 8px;
+      right: 22px;
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0.85;
+      white-space: nowrap;
     }
     label {
       display: grid;
@@ -306,7 +315,7 @@
 
   <section id="loginGate" class="login-gate">
     <div class="login-card">
-      <h1>Scrum Dashboard Login</h1>
+      <h1>AWS Rebuild Scrum Dashboard</h1>
       <p>Enter the team login to access the shared rebuild tracker.</p>
       <form id="loginForm">
         <label>Email
@@ -323,20 +332,21 @@
 
   <div id="appShell" class="hidden">
   <header>
+    <span class="header-badge">Password protected via Supabase Auth</span>
     <div class="header-top">
       <div class="header-brand">
-        <h1>Power Apps Rebuild Scrum Dashboard</h1>
+        <h1>AWS Rebuild Scrum Dashboard</h1>
         <p>Team tracker for AWS - LAWA and AWS - BURBANK rebuild progress, synced with Supabase.</p>
       </div>
       <div class="header-actions actions">
         <button id="startHigh" type="button">Start next 3 high-priority tasks</button>
         <button id="downloadHtml" type="button">Download backup HTML</button>
+        <button id="downloadReport" type="button">Download report</button>
         <button id="exportJson" type="button">Export JSON</button>
         <label>
           <input id="importJson" type="file" accept="application/json" class="hidden" />
           <button type="button" id="importButton">Import JSON</button>
         </label>
-        <button type="button" onclick="window.print()">Print</button>
         <button id="logoutBtn" type="button" class="danger">Sign out</button>
       </div>
     </div>
@@ -350,16 +360,6 @@
   </header>
 
   <main class="stack">
-    <section class="card callout">
-      <div class="between">
-        <div>
-          <h2>Team Sync</h2>
-          <p>This dashboard saves progress to Supabase. Team members must sign in with the shared dashboard login before they can view or edit tasks.</p>
-        </div>
-        <span class="small">Password protected via Supabase Auth</span>
-      </div>
-    </section>
-
     <section class="grid stats" id="stats"></section>
 
     <section class="card">
@@ -384,6 +384,9 @@
         </div>
       </div>
       <div class="grid form" style="margin-top: 12px;">
+        <label>Task ID
+          <input id="editTaskNumber" readonly placeholder="Assigned on save" />
+        </label>
         <label class="full">Select existing task
           <select id="editTaskId"></select>
         </label>
@@ -460,6 +463,7 @@
           <table>
             <thead>
               <tr>
+                <th>Task ID</th>
                 <th>Status</th>
                 <th>Priority</th>
                 <th>App</th>
@@ -522,6 +526,44 @@
       { id: "shared-navigation", app: "Both", section: "Shared UX", title: "Rebuild shared navigation and command patterns", type: "Functionality", priority: "High", status: "Not Started", acceptance: "Left navigation, selected states, command bars, search, more commands, share, and back behavior are consistent across pages." },
       { id: "security-roles", app: "Both", section: "Shared UX", title: "Define permissions and role behavior", type: "Decision", priority: "High", status: "On Hold", acceptance: "Roles such as screener/admin/super admin are mapped to section access and record actions." }
     ];
+    BASE_TASKS.forEach((task, index) => {
+      task.taskNumber = String(100001 + index).padStart(6, "0");
+    });
+
+    function taskNumberFor(task) {
+      if (!task) return "";
+      if (task.taskNumber) return task.taskNumber;
+      const base = BASE_TASKS.find(item => item.id === task.id);
+      return base ? base.taskNumber : "";
+    }
+
+    function syncNextTaskNumber() {
+      let max = 100000;
+      allTasks().forEach(task => {
+        const n = parseInt(taskNumberFor(task), 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      });
+      if (!state.nextTaskNumber || state.nextTaskNumber <= max) {
+        state.nextTaskNumber = max + 1;
+      }
+    }
+
+    function allocateTaskNumber() {
+      syncNextTaskNumber();
+      const num = String(state.nextTaskNumber).padStart(6, "0");
+      state.nextTaskNumber += 1;
+      return num;
+    }
+
+    function ensureTaskNumbers() {
+      syncNextTaskNumber();
+      state.customTasks.forEach(task => {
+        if (!task.taskNumber) {
+          task.taskNumber = String(state.nextTaskNumber).padStart(6, "0");
+          state.nextTaskNumber += 1;
+        }
+      });
+    }
 
     function showLogin() {
       document.getElementById("loginGate").classList.remove("hidden");
@@ -648,6 +690,8 @@
       state.customTasks = Array.isArray(state.customTasks) ? state.customTasks : [];
       state.deletedTaskIds = Array.isArray(state.deletedTaskIds) ? state.deletedTaskIds : [];
       state.dailyNote = state.dailyNote || "Today focus:\n\nBlockers:\n\nDecisions needed:\n";
+      state.nextTaskNumber = state.nextTaskNumber || 100024;
+      ensureTaskNumbers();
     }
 
     function allTasks() {
@@ -717,7 +761,7 @@
       return allTasks().filter(task => {
         const ts = taskState(task);
         const haystack = [
-          task.app, task.section, task.title, task.type, task.priority, task.acceptance,
+          taskNumberFor(task), task.app, task.section, task.title, task.type, task.priority, task.acceptance,
           ts.status, ts.devOwner, ts.qaOwner, ts.note, ts.devTarget, ts.qaTarget
         ].join(" ").toLowerCase();
         return (!q || haystack.includes(q)) &&
@@ -772,6 +816,7 @@
         const ts = taskState(task);
         const statusOptions = STATUSES.map(s => `<option value="${s}" ${s === ts.status ? "selected" : ""}>${s}</option>`).join("");
         return `<tr class="status-${statusClass(ts.status)}">
+          <td><span class="pill">${escapeHtml(taskNumberFor(task))}</span></td>
           <td><select data-id="${task.id}" data-field="status">${statusOptions}</select></td>
           <td><span class="pill ${pillClass(task.priority)}">${escapeHtml(task.priority)}</span></td>
           <td><span class="pill app">${escapeHtml(task.app)}</span></td>
@@ -819,13 +864,14 @@
     function renderTaskSelect(selectedId) {
       const select = document.getElementById("editTaskId");
       select.innerHTML = `<option value="">Create new task</option>` + allTasks()
-        .map(task => `<option value="${escapeAttr(task.id)}" ${task.id === selectedId ? "selected" : ""}>${escapeHtml(task.section)} - ${escapeHtml(task.title)}</option>`)
+        .map(task => `<option value="${escapeAttr(task.id)}" ${task.id === selectedId ? "selected" : ""}>${escapeHtml(taskNumberFor(task))} - ${escapeHtml(task.section)} - ${escapeHtml(task.title)}</option>`)
         .join("");
     }
 
     function loadEditor(taskId) {
       const task = allTasks().find(item => item.id === taskId);
       document.getElementById("editTaskId").value = task ? task.id : "";
+      document.getElementById("editTaskNumber").value = task ? taskNumberFor(task) : "";
       document.getElementById("editTitle").value = task ? task.title : "";
       document.getElementById("editSection").value = task ? task.section : "";
       document.getElementById("editApp").value = task ? task.app : "Both";
@@ -837,6 +883,7 @@
 
     function saveTaskFromEditor() {
       const selectedId = document.getElementById("editTaskId").value;
+      const isNew = !selectedId;
       const task = {
         id: selectedId || `custom-${Date.now()}`,
         title: document.getElementById("editTitle").value.trim(),
@@ -851,6 +898,12 @@
         alert("Task title and section are required.");
         return;
       }
+      if (isNew) {
+        task.taskNumber = allocateTaskNumber();
+      } else {
+        const existing = allTasks().find(item => item.id === task.id);
+        task.taskNumber = taskNumberFor(existing);
+      }
       if (BASE_TASKS.some(base => base.id === task.id)) {
         state.taskEdits[task.id] = task;
       } else {
@@ -863,6 +916,9 @@
       populateFilters();
       showEditor(task.id);
       render();
+      if (isNew) {
+        alert(`Task created successfully.\n\nTask ID: ${task.taskNumber}\nTitle: ${task.title}`);
+      }
     }
 
     function deleteTask(taskId) {
@@ -912,7 +968,114 @@
       const clone = document.documentElement.cloneNode(true);
       clone.querySelector("#embedded-state").textContent = JSON.stringify(state);
       const html = "<!doctype html>\n" + clone.outerHTML;
-      downloadFile("power-apps-scrum-dashboard.html", html, "text/html");
+      downloadFile("Scrum-dashboard-backup.html", html, "text/html");
+    }
+
+    function downloadClientReport() {
+      const exportedAt = new Date();
+      const stamp = exportedAt.toISOString().slice(0, 10);
+      const tasks = allTasks().slice().sort((a, b) => taskNumberFor(a).localeCompare(taskNumberFor(b)));
+      const done = tasks.filter(t => taskState(t).status === "Done").length;
+      const progress = tasks.filter(t => taskState(t).status === "In Progress").length;
+      const blocked = tasks.filter(t => ["Blocked", "On Hold"].includes(taskState(t).status)).length;
+      const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+      const highOpen = tasks.filter(t => t.priority === "High" && taskState(t).status !== "Done").length;
+      const statsHtml = [
+        ["Overall complete", pct + "%"],
+        ["Done", done],
+        ["In progress", progress],
+        ["Blocked / on hold", blocked],
+        ["High priority open", highOpen]
+      ].map(([label, value]) => `<div class="stat"><div class="value">${escapeHtml(value)}</div><div class="label">${escapeHtml(label)}</div></div>`).join("");
+      const rowsHtml = tasks.map(task => {
+        const ts = taskState(task);
+        return `<tr>
+          <td>${escapeHtml(taskNumberFor(task))}</td>
+          <td>${escapeHtml(ts.status)}</td>
+          <td>${escapeHtml(task.priority)}</td>
+          <td>${escapeHtml(task.app)}</td>
+          <td>${escapeHtml(task.section)}</td>
+          <td>
+            <div class="task-title">${escapeHtml(task.title)}</div>
+            <div class="acceptance">${escapeHtml(task.type)}: ${escapeHtml(task.acceptance)}</div>
+          </td>
+          <td>${escapeHtml(ts.devOwner) || "-"}</td>
+          <td>${escapeHtml(ts.qaOwner) || "-"}</td>
+          <td>${escapeHtml(ts.devTarget) || "-"}</td>
+          <td>${escapeHtml(ts.qaTarget) || "-"}</td>
+          <td>${escapeHtml(ts.note) || "-"}</td>
+        </tr>`;
+      }).join("");
+      const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AWS Rebuild Scrum Dashboard - Client Report</title>
+  <style>
+    :root { --bg:#0f1117; --panel:#171a23; --text:#f2f5f8; --muted:#aeb7c2; --border:#303747; --accent:#5aa7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:Segoe UI, Inter, Arial, sans-serif; line-height:1.45; }
+    main { max-width:1880px; margin:0 auto; padding:22px; }
+    h1 { margin:0 0 6px; font-size:24px; }
+    p { margin:0; color:var(--muted); }
+    .banner { background:rgba(245,196,81,.12); border:1px solid rgba(245,196,81,.45); color:#f5c451; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+    .stats { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:12px; margin-bottom:14px; }
+    .stat { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .value { font-size:24px; font-weight:700; }
+    .label { color:var(--muted); font-size:12px; margin-top:2px; }
+    .notes { white-space:pre-wrap; background:#1f2430; border:1px solid var(--border); border-radius:8px; padding:12px; min-height:80px; }
+    table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    th, td { border-bottom:1px solid var(--border); padding:10px; text-align:left; vertical-align:top; font-size:13px; }
+    th { background:#1f2430; color:var(--muted); }
+    tr:last-child td { border-bottom:0; }
+    .task-title { font-weight:650; }
+    .acceptance { color:var(--muted); font-size:12px; margin-top:4px; }
+    footer { margin-top:18px; color:var(--muted); font-size:12px; }
+    @media (max-width:900px) { .stats { grid-template-columns:1fr 1fr; } table { display:block; overflow-x:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="banner">Read-only client report. This file is a snapshot for review only and does not connect to Supabase or change the live dashboard.</div>
+    <header class="card">
+      <h1>AWS Rebuild Scrum Dashboard</h1>
+      <p>Client report snapshot for AWS - LAWA and AWS - BURBANK rebuild progress.</p>
+      <p style="margin-top:8px;">Generated: ${escapeHtml(exportedAt.toLocaleString())}</p>
+    </header>
+    <section class="stats">${statsHtml}</section>
+    <section class="card">
+      <h2 style="margin:0 0 10px;font-size:18px;">Daily Scrum Notes</h2>
+      <div class="notes">${escapeHtml(state.dailyNote || "")}</div>
+    </section>
+    <section class="card">
+      <h2 style="margin:0 0 10px;font-size:18px;">Sprint Backlog Tracker</h2>
+      <p style="margin-bottom:12px;">${tasks.length} tasks in this report.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Task ID</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>App</th>
+            <th>Section</th>
+            <th>Task</th>
+            <th>Dev owner</th>
+            <th>QA owner</th>
+            <th>Dev target</th>
+            <th>QA target</th>
+            <th>Scrum note / blocker</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </section>
+    <footer>AWS Rebuild Scrum Dashboard client report (${escapeHtml(stamp)}). For editing, use the live team dashboard.</footer>
+  </main>
+</body>
+</html>`;
+      downloadFile(`AWS-Scrum-Report-${stamp}.html`, html, "text/html");
     }
 
     document.addEventListener("change", event => {
@@ -967,9 +1130,10 @@
     });
     document.getElementById("closeEditor").addEventListener("click", hideEditor);
     document.getElementById("downloadHtml").addEventListener("click", downloadSharePointHtml);
+    document.getElementById("downloadReport").addEventListener("click", downloadClientReport);
 
     document.getElementById("exportJson").addEventListener("click", () => {
-      downloadFile("power-apps-scrum-dashboard-status.json", JSON.stringify({ exportedAt: new Date().toISOString(), state }, null, 2), "application/json");
+      downloadFile("Scrum-dashboard-status.json", JSON.stringify({ exportedAt: new Date().toISOString(), state }, null, 2), "application/json");
     });
 
     document.getElementById("importButton").addEventListener("click", () => document.getElementById("importJson").click());
