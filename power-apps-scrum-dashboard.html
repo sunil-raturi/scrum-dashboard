@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Power Apps Rebuild Scrum Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #171a23;
+      --panel-2: #1f2430;
+      --text: #f2f5f8;
+      --muted: #aeb7c2;
+      --border: #303747;
+      --accent: #5aa7ff;
+      --green: #50c878;
+      --yellow: #f5c451;
+      --red: #ff6b6b;
+      --purple: #b99cff;
+      --blue: #70b8ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Segoe UI, Inter, Arial, sans-serif;
+      line-height: 1.45;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(15, 17, 23, 0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 22px;
+    }
+    main {
+      padding: 22px;
+      max-width: 1880px;
+      margin: 0 auto;
+    }
+    h1, h2, h3 { margin: 0; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 18px; margin-bottom: 12px; }
+    h3 { font-size: 14px; }
+    p { margin: 0; color: var(--muted); }
+    button, select, input, textarea {
+      font: inherit;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    button {
+      cursor: pointer;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+    button:hover { border-color: var(--accent); }
+    button.danger:hover { border-color: var(--red); }
+    select, input { padding: 7px 9px; min-height: 36px; }
+    textarea {
+      width: 100%;
+      min-height: 92px;
+      padding: 10px;
+      resize: vertical;
+    }
+    #dailyNote {
+      min-height: 220px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    label > input, label > select, label > textarea {
+      color: var(--text);
+      font-size: 13px;
+    }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .between { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .stack { display: grid; gap: 14px; }
+    .grid { display: grid; gap: 14px; }
+    .grid.stats { grid-template-columns: repeat(5, minmax(150px, 1fr)); }
+    .grid.two { grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); align-items: start; }
+    .grid.form { grid-template-columns: repeat(4, minmax(160px, 1fr)); }
+    .grid.form-wide { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    details.card {
+      padding: 0;
+      overflow: hidden;
+    }
+    details.card summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 14px 16px;
+      color: var(--text);
+      font-weight: 650;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+    details.card summary::-webkit-details-marker { display: none; }
+    details.card summary::after {
+      content: "+";
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+    }
+    details.card[open] summary {
+      border-bottom: 1px solid var(--border);
+    }
+    details.card[open] summary::after { content: "-"; }
+    .collapsible-body { padding: 14px 16px 16px; }
+    .callout {
+      border: 1px solid rgba(90, 167, 255, 0.45);
+      background: rgba(90, 167, 255, 0.08);
+    }
+    .stat .value { font-size: 26px; font-weight: 700; }
+    .stat .label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .toolbar {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(150px, 190px)) auto;
+      gap: 10px;
+    }
+    .toolbar input { width: 100%; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .pill.high, .pill.blocked, .pill.hold { color: var(--yellow); border-color: rgba(245, 196, 81, 0.6); }
+    .pill.medium, .pill.progress { color: var(--blue); border-color: rgba(112, 184, 255, 0.6); }
+    .pill.done { color: var(--green); border-color: rgba(80, 200, 120, 0.6); }
+    .pill.low { color: var(--muted); }
+    .pill.app { color: var(--purple); border-color: rgba(185, 156, 255, 0.6); }
+    .progressbar {
+      height: 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progressbar > div {
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+    }
+    table {
+      width: 100%;
+      min-width: 1500px;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--panel-2);
+      z-index: 5;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    tr:last-child td { border-bottom: 0; }
+    tr.status-Done td { background: rgba(80, 200, 120, 0.05); }
+    tr.status-Blocked td, tr.status-On-Hold td { background: rgba(245, 196, 81, 0.06); }
+    tr.status-In-Progress td { background: rgba(90, 167, 255, 0.06); }
+    .task-title { font-weight: 650; }
+    .acceptance { color: var(--muted); font-size: 12px; max-width: 520px; }
+    .task-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .task-meta button { padding: 5px 9px; font-size: 12px; }
+    .editor-actions {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      justify-content: flex-end;
+    }
+    .note { width: 100%; min-width: 220px; }
+    .owner { width: 100%; min-width: 140px; }
+    .date { min-width: 132px; cursor: pointer; }
+    .table-wrap { max-height: 760px; overflow: auto; border-radius: 12px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .hidden { display: none !important; }
+    .danger { color: var(--red); }
+    .muted { color: var(--muted); }
+    .full { grid-column: 1 / -1; }
+
+    @media (max-width: 1100px) {
+      .grid.stats, .grid.two, .grid.form, .grid.form-wide, .toolbar { grid-template-columns: 1fr; }
+      header { position: static; }
+      th { position: static; }
+      main { padding: 14px; }
+    }
+
+    @media print {
+      body { background: white; color: black; }
+      header, .card, table { background: white; color: black; }
+      .toolbar, .actions, .editor-card, button, input[type="file"] { display: none !important; }
+      .table-wrap { max-height: none; overflow: visible; }
+      table { min-width: 0; }
+      select, input, textarea { color: black; border: 1px solid #999; }
+      .pill { color: black !important; border-color: #999 !important; }
+    }
+  </style>
+</head>
+<body>
+  <script id="embedded-state" type="application/json">{}</script>
+
+  <header>
+    <div class="between">
+      <div>
+        <h1>Power Apps Rebuild Scrum Dashboard</h1>
+        <p>Standalone tracker for AWS - LAWA and AWS - BURBANK rebuild progress.</p>
+      </div>
+      <div class="row actions">
+        <button id="startHigh">Start next 3 high-priority tasks</button>
+        <button id="downloadHtml">Download updated HTML for SharePoint</button>
+        <button id="exportJson">Export JSON</button>
+        <label>
+          <input id="importJson" type="file" accept="application/json" class="hidden" />
+          <button type="button" id="importButton">Import JSON</button>
+        </label>
+        <button onclick="window.print()">Print</button>
+        <button id="resetAll" class="danger" title="Clears saved statuses and notes from this browser">Reset</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search task, section, owner, note, or acceptance criteria" />
+      <select id="statusFilter"></select>
+      <select id="sectionFilter"></select>
+      <select id="priorityFilter"></select>
+      <span id="lastSaved" class="small"></span>
+    </div>
+  </header>
+
+  <main class="stack">
+    <section class="card callout">
+      <div class="between">
+        <div>
+          <h2>SharePoint usage</h2>
+          <p>Upload this HTML file to SharePoint for read access. To publish your latest edits, use <strong>Download updated HTML for SharePoint</strong> and replace the SharePoint file.</p>
+        </div>
+        <span class="small">No server or database required</span>
+      </div>
+    </section>
+
+    <section class="grid stats" id="stats"></section>
+
+    <section class="card">
+      <div class="between">
+        <div>
+          <h2>Daily Scrum Notes</h2>
+          <p>Use this during the scrum for today's focus, blockers, handoffs, and decisions.</p>
+        </div>
+        <span class="small">Auto-saved in this browser</span>
+      </div>
+      <textarea id="dailyNote"></textarea>
+    </section>
+
+    <section class="card editor-card hidden" id="taskEditor">
+      <div class="between">
+        <div>
+          <h2>Task Editor</h2>
+          <p>Add new tasks or edit existing scope items without changing code.</p>
+        </div>
+        <div class="row">
+          <button id="newTaskTop" type="button">Add new task</button>
+        </div>
+      </div>
+      <div class="grid form" style="margin-top: 12px;">
+        <label class="full">Select existing task
+          <select id="editTaskId"></select>
+        </label>
+        <label>Title
+          <input id="editTitle" />
+        </label>
+        <label>Section
+          <input id="editSection" />
+        </label>
+        <label>App
+          <select id="editApp">
+            <option>Both</option>
+            <option>LAWA</option>
+            <option>BURBANK</option>
+          </select>
+        </label>
+        <label>Type
+          <select id="editType">
+            <option>Page</option>
+            <option>Record form</option>
+            <option>Pop-up</option>
+            <option>Functionality</option>
+            <option>Decision</option>
+            <option>Issue</option>
+          </select>
+        </label>
+        <label>Priority
+          <select id="editPriority">
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </label>
+        <label>Default status
+          <select id="editStatus"></select>
+        </label>
+        <label class="full">Acceptance criteria / notes
+          <textarea id="editAcceptance" rows="3"></textarea>
+        </label>
+      </div>
+      <div class="row editor-actions">
+        <button id="saveTask">Save task</button>
+        <button id="deleteTask" class="danger">Delete task</button>
+        <button id="closeEditor">Close</button>
+      </div>
+      <p class="small" style="margin-top: 10px;">Custom tasks are deleted permanently. Baseline rebuild tasks are removed from this board and from the downloaded SharePoint copy.</p>
+    </section>
+
+    <section class="grid two">
+      <div class="stack">
+        <details class="card" open>
+          <summary>Status Lanes</summary>
+          <div id="lanes" class="stack collapsible-body"></div>
+        </details>
+
+        <details class="card" open>
+          <summary>Section Progress</summary>
+          <div id="sections" class="stack collapsible-body"></div>
+        </details>
+      </div>
+
+      <section class="stack">
+        <div class="between">
+          <div>
+            <h2>Sprint Backlog Tracker</h2>
+            <p>Update status, Dev/QA owners, Dev/QA target dates, and scrum notes directly in the table.</p>
+          </div>
+          <div class="row">
+            <button id="newTask" type="button">Add new task</button>
+            <span id="visibleCount" class="small"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>App</th>
+                <th>Section</th>
+                <th>Task</th>
+                <th>Dev owner</th>
+                <th>QA owner</th>
+                <th>Dev target</th>
+                <th>QA target</th>
+                <th>Scrum note / blocker</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="taskRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "powerAppsScrumDashboard.v2";
+    const STATUSES = ["Not Started", "In Progress", "On Hold", "Blocked", "Done"];
+    const PRIORITIES = ["High", "Medium", "Low"];
+    const APPS = ["Both", "LAWA", "BURBANK"];
+    const TYPES = ["Page", "Record form", "Pop-up", "Functionality", "Decision", "Issue"];
+    const BASE_TASKS = [
+      { id: "employees-list", app: "Both", section: "Employees", title: "Rebuild Active Employees list", type: "Page", priority: "High", status: "Not Started", acceptance: "Grid supports full name, user name, permission, email, search, row selection, view selector, edit columns, filters, chart, share, and commands." },
+      { id: "employees-form", app: "Both", section: "Employees", title: "Rebuild employee create/detail form", type: "Record form", priority: "High", status: "Not Started", acceptance: "User can create/open employee record and manage profile fields, record actions, related data, and audit access." },
+      { id: "assignments-list", app: "Both", section: "Assignments", title: "Rebuild Approved Assignments list", type: "Page", priority: "High", status: "Not Started", acceptance: "Grid includes assignment code/date/start/end, Due filter, search, view selector, row selection, chart, share, and command actions." },
+      { id: "assignments-form", app: "Both", section: "Assignments", title: "Rebuild assignment detail form", type: "Record form", priority: "High", status: "Not Started", acceptance: "Assignment record shows start/end time, terminal, operational team, door, assignment tab, audit history, related menu, refresh/delete/open actions." },
+      { id: "door-hours-lawa", app: "LAWA", section: "Door Hours", title: "Confirm and rebuild LAWA Door Hours", type: "Decision", priority: "Medium", status: "On Hold", acceptance: "Decision captured on whether Door Hours is LAWA-only and exact page behavior is documented before build starts." },
+      { id: "maps-page", app: "Both", section: "Maps", title: "Rebuild map dashboard shell", type: "Page", priority: "High", status: "Not Started", acceptance: "Map page includes agents at location, agents in route, available agents, map area, retry, panel toggle, read-only grid, chart, and filters/search." },
+      { id: "maps-config", app: "Both", section: "Maps", title: "Resolve map configuration and bounds", type: "Issue", priority: "High", status: "Blocked", acceptance: "Map bounds/config source is identified for each business unit and page no longer shows Unable to Load Map." },
+      { id: "dispatches-list", app: "Both", section: "Dispatches", title: "Rebuild Accepted Dispatches list", type: "Page", priority: "High", status: "Not Started", acceptance: "Grid includes assignment code/date/start/end/current door, Show As, chart, row selection, search, edit columns, edit filters, share, and commands." },
+      { id: "dispatch-control", app: "Both", section: "Dispatches", title: "Investigate dispatch custom control", type: "Issue", priority: "Medium", status: "Blocked", acceptance: "Error loading control is traced to expected functionality and rebuild decision is recorded." },
+      { id: "upload-history-list", app: "Both", section: "Upload History", title: "Rebuild upload history list", type: "Page", priority: "Medium", status: "Not Started", acceptance: "Import history grid includes import name, status reason, successes, errors, partial failures, search, chart, share, and commands." },
+      { id: "import-data-popup", app: "Both", section: "Upload History", title: "Rebuild Import data panel", type: "Pop-up", priority: "High", status: "Not Started", acceptance: "Panel supports choose file, imported record owner lookup, owner removal, back, next, close, and upload flow validation." },
+      { id: "dashboard-fallback", app: "Both", section: "Dashboard", title: "Rebuild default dashboard", type: "Page", priority: "Low", status: "Not Started", acceptance: "Dashboard renders fallback welcome state or agreed replacement dashboard with share and command support." },
+      { id: "training-cert-list", app: "Both", section: "Training Certificates", title: "Rebuild training certificates list", type: "Page", priority: "Medium", status: "Not Started", acceptance: "Grid includes user, certificate name, training date, renewal date, days until renewal, search, chart, new, edit columns, and filters." },
+      { id: "training-cert-form", app: "Both", section: "Training Certificates", title: "Rebuild certificate create/detail form", type: "Record form", priority: "Medium", status: "Not Started", acceptance: "Form captures user, certificate, training date, renewal date, and calculated renewal days." },
+      { id: "training-video-list", app: "Both", section: "Training Videos", title: "Rebuild training videos list", type: "Page", priority: "Medium", status: "Not Started", acceptance: "Grid includes title, course overview, description, search, chart, new, edit columns, and filters." },
+      { id: "training-video-form", app: "Both", section: "Training Videos", title: "Rebuild video create/detail form", type: "Record form", priority: "Medium", status: "Not Started", acceptance: "Form captures title, course overview, description, and video-related metadata agreed by product owner." },
+      { id: "screening-report", app: "Both", section: "Reports", title: "Rebuild Screening Reports", type: "Page", priority: "High", status: "Not Started", acceptance: "Screening Performance Report_AWS view supports assignment date/code/start/end, new record, chart, search, edit columns, and filters." },
+      { id: "agent-performance-report", app: "Both", section: "Reports", title: "Rebuild Agent Performance Report", type: "Page", priority: "High", status: "Not Started", acceptance: "Agent Performance Report AWS view supports assignment date, assignment code, team, current door, search, chart, edit columns, and filters." },
+      { id: "deviation-report", app: "Both", section: "Reports", title: "Rebuild Deviation Report", type: "Page", priority: "High", status: "Not Started", acceptance: "Assignment Deviation Report AWS view supports assignment date/code/start/end, new deviation, chart, search, edit columns, and filters." },
+      { id: "chats-page", app: "Both", section: "Chats", title: "Rebuild chat page shell", type: "Page", priority: "Medium", status: "Not Started", acceptance: "Chats view supports read-only grid, chart, view selector, search, edit columns, and edit filters." },
+      { id: "chat-config", app: "Both", section: "Chats", title: "Resolve Comet chat business-unit config", type: "Issue", priority: "High", status: "Blocked", acceptance: "Comet chat configuration is set or a replacement chat approach is approved; Unable to load chat no longer appears." },
+      { id: "shared-navigation", app: "Both", section: "Shared UX", title: "Rebuild shared navigation and command patterns", type: "Functionality", priority: "High", status: "Not Started", acceptance: "Left navigation, selected states, command bars, search, more commands, share, and back behavior are consistent across pages." },
+      { id: "security-roles", app: "Both", section: "Shared UX", title: "Define permissions and role behavior", type: "Decision", priority: "High", status: "On Hold", acceptance: "Roles such as screener/admin/super admin are mapped to section access and record actions." }
+    ];
+
+    function readEmbeddedState() {
+      try {
+        const text = document.getElementById("embedded-state").textContent.trim();
+        return text ? JSON.parse(text) : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function readLocalState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function newestState(a, b) {
+      const aTime = a && a.updatedAt ? Date.parse(a.updatedAt) : 0;
+      const bTime = b && b.updatedAt ? Date.parse(b.updatedAt) : 0;
+      return bTime > aTime ? b : a;
+    }
+
+    let state = newestState(readEmbeddedState(), readLocalState());
+    normalizeState();
+
+    function normalizeState() {
+      state = state || {};
+      state.tasks = state.tasks || {};
+      state.taskEdits = state.taskEdits || {};
+      state.customTasks = Array.isArray(state.customTasks) ? state.customTasks : [];
+      state.deletedTaskIds = Array.isArray(state.deletedTaskIds) ? state.deletedTaskIds : [];
+      state.dailyNote = state.dailyNote || "Today focus:\n\nBlockers:\n\nDecisions needed:\n";
+    }
+
+    function allTasks() {
+      const deleted = new Set(state.deletedTaskIds || []);
+      const mergedBase = BASE_TASKS
+        .filter(task => !deleted.has(task.id))
+        .map(task => ({ ...task, ...(state.taskEdits[task.id] || {}) }));
+      return [...mergedBase, ...state.customTasks];
+    }
+
+    function saveState() {
+      normalizeState();
+      state.updatedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      document.getElementById("lastSaved").textContent = "Saved: " + new Date(state.updatedAt).toLocaleString();
+    }
+
+    function taskState(task) {
+      const saved = state.tasks[task.id] || {};
+      return {
+        status: saved.status || saved.state || task.status,
+        devOwner: saved.devOwner || saved.owner || "",
+        qaOwner: saved.qaOwner || "",
+        devTarget: saved.devTarget || saved.target || "",
+        qaTarget: saved.qaTarget || "",
+        note: saved.note || ""
+      };
+    }
+
+    function setTaskValue(id, key, value) {
+      state.tasks[id] = { ...(state.tasks[id] || {}), [key]: value };
+      saveState();
+      render();
+    }
+
+    function showEditor(taskId) {
+      document.getElementById("taskEditor").classList.remove("hidden");
+      loadEditor(taskId || "");
+      document.getElementById("taskEditor").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function hideEditor() {
+      document.getElementById("taskEditor").classList.add("hidden");
+      loadEditor("");
+    }
+
+    function statusClass(status) {
+      return status.replace(/\s+/g, "-");
+    }
+
+    function pillClass(value) {
+      if (value === "High") return "high";
+      if (value === "Medium") return "medium";
+      if (value === "Done") return "done";
+      if (value === "In Progress") return "progress";
+      if (value === "Blocked") return "blocked";
+      if (value === "On Hold") return "hold";
+      return "low";
+    }
+
+    function filteredTasks() {
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      const status = document.getElementById("statusFilter").value;
+      const section = document.getElementById("sectionFilter").value;
+      const priority = document.getElementById("priorityFilter").value;
+      return allTasks().filter(task => {
+        const ts = taskState(task);
+        const haystack = [
+          task.app, task.section, task.title, task.type, task.priority, task.acceptance,
+          ts.status, ts.devOwner, ts.qaOwner, ts.note, ts.devTarget, ts.qaTarget
+        ].join(" ").toLowerCase();
+        return (!q || haystack.includes(q)) &&
+          (!status || ts.status === status) &&
+          (!section || task.section === section) &&
+          (!priority || task.priority === priority);
+      });
+    }
+
+    function renderStats() {
+      const tasks = allTasks();
+      const done = tasks.filter(t => taskState(t).status === "Done").length;
+      const progress = tasks.filter(t => taskState(t).status === "In Progress").length;
+      const blocked = tasks.filter(t => ["Blocked", "On Hold"].includes(taskState(t).status)).length;
+      const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+      const highOpen = tasks.filter(t => t.priority === "High" && taskState(t).status !== "Done").length;
+      document.getElementById("stats").innerHTML = [
+        ["Overall complete", pct + "%"],
+        ["Done", done],
+        ["In progress", progress],
+        ["Blocked / on hold", blocked],
+        ["High priority open", highOpen]
+      ].map(([label, value]) => `<div class="card stat"><div class="value">${value}</div><div class="label">${label}</div></div>`).join("");
+    }
+
+    function renderLanes() {
+      const tasks = allTasks();
+      document.getElementById("lanes").innerHTML = STATUSES.map(status => {
+        const count = tasks.filter(t => taskState(t).status === status).length;
+        return `<div class="between"><span class="pill ${pillClass(status)}">${status}</span><strong>${count}</strong></div>`;
+      }).join("");
+    }
+
+    function renderSections() {
+      const tasks = allTasks();
+      const sections = [...new Set(tasks.map(t => t.section))].sort();
+      document.getElementById("sections").innerHTML = sections.map(section => {
+        const sectionTasks = tasks.filter(t => t.section === section);
+        const done = sectionTasks.filter(t => taskState(t).status === "Done").length;
+        const pct = sectionTasks.length ? Math.round((done / sectionTasks.length) * 100) : 0;
+        return `<div>
+          <div class="between"><span>${escapeHtml(section)}</span><span class="small">${done}/${sectionTasks.length} done</span></div>
+          <div class="progressbar"><div style="width:${pct}%"></div></div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderRows() {
+      const rows = filteredTasks();
+      document.getElementById("visibleCount").textContent = `${rows.length} visible of ${allTasks().length} tasks`;
+      document.getElementById("taskRows").innerHTML = rows.map(task => {
+        const ts = taskState(task);
+        const statusOptions = STATUSES.map(s => `<option value="${s}" ${s === ts.status ? "selected" : ""}>${s}</option>`).join("");
+        return `<tr class="status-${statusClass(ts.status)}">
+          <td><select data-id="${task.id}" data-field="status">${statusOptions}</select></td>
+          <td><span class="pill ${pillClass(task.priority)}">${escapeHtml(task.priority)}</span></td>
+          <td><span class="pill app">${escapeHtml(task.app)}</span></td>
+          <td>${escapeHtml(task.section)}</td>
+          <td>
+            <div class="task-title">${escapeHtml(task.title)}</div>
+            <div class="acceptance">${escapeHtml(task.type)}: ${escapeHtml(task.acceptance)}</div>
+            <div class="task-meta"><button data-edit-id="${task.id}" type="button">Edit</button></div>
+          </td>
+          <td><input class="owner" data-id="${task.id}" data-field="devOwner" value="${escapeAttr(ts.devOwner)}" placeholder="Dev owner" /></td>
+          <td><input class="owner" data-id="${task.id}" data-field="qaOwner" value="${escapeAttr(ts.qaOwner)}" placeholder="QA owner" /></td>
+          <td><input class="date" type="date" data-id="${task.id}" data-field="devTarget" value="${escapeAttr(ts.devTarget)}" /></td>
+          <td><input class="date" type="date" data-id="${task.id}" data-field="qaTarget" value="${escapeAttr(ts.qaTarget)}" /></td>
+          <td><input class="note" data-id="${task.id}" data-field="note" value="${escapeAttr(ts.note)}" placeholder="Today's update or blocker" /></td>
+          <td><button data-delete-id="${task.id}" type="button" class="danger" title="${isCustomTask(task.id) ? "Delete this custom task" : "Remove this baseline task from the board"}">Delete</button></td>
+        </tr>`;
+      }).join("");
+    }
+
+    function escapeAttr(value) {
+      return String(value || "").replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+
+    function isCustomTask(id) {
+      return state.customTasks.some(task => task.id === id);
+    }
+
+    function optionList(values, selected) {
+      return values.map(value => `<option value="${escapeAttr(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
+    }
+
+    function populateFilters() {
+      const sections = [...new Set(allTasks().map(t => t.section))].sort();
+      document.getElementById("statusFilter").innerHTML = `<option value="">All statuses</option>` + optionList(STATUSES, "");
+      document.getElementById("sectionFilter").innerHTML = `<option value="">All sections</option>` + optionList(sections, "");
+      document.getElementById("priorityFilter").innerHTML = `<option value="">All priorities</option>` + optionList(PRIORITIES, "");
+      document.getElementById("editStatus").innerHTML = optionList(STATUSES, "Not Started");
+      renderTaskSelect();
+    }
+
+    function renderTaskSelect(selectedId) {
+      const select = document.getElementById("editTaskId");
+      select.innerHTML = `<option value="">Create new task</option>` + allTasks()
+        .map(task => `<option value="${escapeAttr(task.id)}" ${task.id === selectedId ? "selected" : ""}>${escapeHtml(task.section)} - ${escapeHtml(task.title)}</option>`)
+        .join("");
+    }
+
+    function loadEditor(taskId) {
+      const task = allTasks().find(item => item.id === taskId);
+      document.getElementById("editTaskId").value = task ? task.id : "";
+      document.getElementById("editTitle").value = task ? task.title : "";
+      document.getElementById("editSection").value = task ? task.section : "";
+      document.getElementById("editApp").value = task ? task.app : "Both";
+      document.getElementById("editType").value = task ? task.type : "Page";
+      document.getElementById("editPriority").value = task ? task.priority : "Medium";
+      document.getElementById("editStatus").value = task ? task.status : "Not Started";
+      document.getElementById("editAcceptance").value = task ? task.acceptance : "";
+    }
+
+    function saveTaskFromEditor() {
+      const selectedId = document.getElementById("editTaskId").value;
+      const task = {
+        id: selectedId || `custom-${Date.now()}`,
+        title: document.getElementById("editTitle").value.trim(),
+        section: document.getElementById("editSection").value.trim(),
+        app: document.getElementById("editApp").value,
+        type: document.getElementById("editType").value,
+        priority: document.getElementById("editPriority").value,
+        status: document.getElementById("editStatus").value,
+        acceptance: document.getElementById("editAcceptance").value.trim()
+      };
+      if (!task.title || !task.section) {
+        alert("Task title and section are required.");
+        return;
+      }
+      if (BASE_TASKS.some(base => base.id === task.id)) {
+        state.taskEdits[task.id] = task;
+      } else {
+        const index = state.customTasks.findIndex(item => item.id === task.id);
+        if (index >= 0) state.customTasks[index] = task;
+        else state.customTasks.push(task);
+      }
+      state.tasks[task.id] = { ...(state.tasks[task.id] || {}), status: task.status };
+      saveState();
+      populateFilters();
+      showEditor(task.id);
+      render();
+    }
+
+    function deleteTask(taskId) {
+      const task = allTasks().find(item => item.id === taskId);
+      if (!task) return;
+      const isCustom = isCustomTask(taskId);
+      const message = isCustom
+        ? "Delete this custom task permanently?"
+        : "Remove this baseline task from the board? It will stay hidden in this browser and in downloaded SharePoint HTML.";
+      if (!confirm(message)) return;
+      state.deletedTaskIds = Array.isArray(state.deletedTaskIds) ? state.deletedTaskIds : [];
+      if (isCustom) {
+        state.customTasks = state.customTasks.filter(item => item.id !== taskId);
+      } else if (!state.deletedTaskIds.includes(taskId)) {
+        state.deletedTaskIds.push(taskId);
+      }
+      delete state.taskEdits[taskId];
+      delete state.tasks[taskId];
+      saveState();
+      populateFilters();
+      hideEditor();
+      render();
+    }
+
+    function render() {
+      renderStats();
+      renderLanes();
+      renderSections();
+      renderRows();
+      if (state.updatedAt) {
+        document.getElementById("lastSaved").textContent = "Saved: " + new Date(state.updatedAt).toLocaleString();
+      }
+    }
+
+    function downloadFile(name, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadSharePointHtml() {
+      saveState();
+      const clone = document.documentElement.cloneNode(true);
+      clone.querySelector("#embedded-state").textContent = JSON.stringify(state);
+      const html = "<!doctype html>\n" + clone.outerHTML;
+      downloadFile("power-apps-scrum-dashboard.html", html, "text/html");
+    }
+
+    document.addEventListener("change", event => {
+      const el = event.target;
+      if (el.dataset && el.dataset.id && el.dataset.field) setTaskValue(el.dataset.id, el.dataset.field, el.value);
+      if (el.id === "editTaskId") loadEditor(el.value);
+      if (["statusFilter", "sectionFilter", "priorityFilter"].includes(el.id)) render();
+    });
+
+    document.addEventListener("input", event => {
+      const el = event.target;
+      if (el.id === "dailyNote") {
+        state.dailyNote = el.value;
+        saveState();
+      }
+      if (el.dataset && el.dataset.id && el.dataset.field) {
+        state.tasks[el.dataset.id] = { ...(state.tasks[el.dataset.id] || {}), [el.dataset.field]: el.value };
+        saveState();
+      }
+      if (el.id === "search") render();
+    });
+
+    document.addEventListener("click", event => {
+      if (event.target.matches && event.target.matches('input[type="date"]')) {
+        try {
+          event.target.showPicker && event.target.showPicker();
+        } catch {
+          event.target.focus();
+        }
+      }
+      const editId = event.target.dataset && event.target.dataset.editId;
+      const deleteId = event.target.dataset && event.target.dataset.deleteId;
+      if (editId) showEditor(editId);
+      if (deleteId) deleteTask(deleteId);
+    });
+
+    document.getElementById("startHigh").addEventListener("click", () => {
+      allTasks().filter(t => t.priority === "High" && taskState(t).status === "Not Started").slice(0, 3).forEach(t => {
+        state.tasks[t.id] = { ...(state.tasks[t.id] || {}), status: "In Progress" };
+      });
+      saveState();
+      render();
+    });
+
+    document.getElementById("newTask").addEventListener("click", () => showEditor(""));
+    document.getElementById("newTaskTop").addEventListener("click", () => showEditor(""));
+    document.getElementById("saveTask").addEventListener("click", saveTaskFromEditor);
+    document.getElementById("deleteTask").addEventListener("click", () => {
+      const taskId = document.getElementById("editTaskId").value;
+      if (!taskId) return alert("Select a task to delete.");
+      deleteTask(taskId);
+    });
+    document.getElementById("closeEditor").addEventListener("click", hideEditor);
+    document.getElementById("downloadHtml").addEventListener("click", downloadSharePointHtml);
+
+    document.getElementById("resetAll").addEventListener("click", () => {
+      if (!confirm("Reset all saved statuses, task edits, owners, notes, and daily scrum notes in this browser?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state = readEmbeddedState();
+      normalizeState();
+      document.getElementById("dailyNote").value = state.dailyNote;
+      saveState();
+      populateFilters();
+      hideEditor();
+      render();
+    });
+
+    document.getElementById("exportJson").addEventListener("click", () => {
+      downloadFile("power-apps-scrum-dashboard-status.json", JSON.stringify({ exportedAt: new Date().toISOString(), state }, null, 2), "application/json");
+    });
+
+    document.getElementById("importButton").addEventListener("click", () => document.getElementById("importJson").click());
+    document.getElementById("importJson").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          state = imported.state || imported;
+          normalizeState();
+          document.getElementById("dailyNote").value = state.dailyNote;
+          saveState();
+          populateFilters();
+          hideEditor();
+          render();
+        } catch {
+          alert("Could not import this JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    populateFilters();
+    document.getElementById("dailyNote").value = state.dailyNote;
+    loadEditor("");
+    render();
+  </script>
+</body>
+</html>
