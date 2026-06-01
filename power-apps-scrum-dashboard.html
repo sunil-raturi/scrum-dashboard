@@ -84,19 +84,33 @@
     }
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .between { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .header-brand { min-width: 0; }
-    .header-brand p { margin-top: 4px; }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+    .header-brand {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .header-brand h1 {
+      font-size: 22px;
+      line-height: 1.2;
+    }
+    .header-brand p {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
     .header-actions {
-      margin-top: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
+      flex: 0 0 auto;
       flex-wrap: nowrap;
       overflow-x: auto;
-      padding: 10px 12px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 10px;
       scrollbar-width: thin;
     }
     .header-actions button,
@@ -105,8 +119,8 @@
       margin: 0;
     }
     .header-actions button {
-      padding: 7px 12px;
-      font-size: 13px;
+      padding: 7px 10px;
+      font-size: 12px;
       line-height: 1.2;
     }
     .header-actions label {
@@ -118,6 +132,13 @@
     .header-actions .btn-muted:hover {
       color: var(--text);
       border-color: var(--border);
+    }
+    .header-actions .danger {
+      color: var(--red);
+    }
+    .header-actions .danger:hover {
+      color: var(--red);
+      border-color: var(--red);
     }
     .stack { display: grid; gap: 14px; }
     .grid { display: grid; gap: 14px; }
@@ -302,20 +323,22 @@
 
   <div id="appShell" class="hidden">
   <header>
-    <div class="header-brand">
-      <h1>Power Apps Rebuild Scrum Dashboard</h1>
-      <p>Team tracker for AWS - LAWA and AWS - BURBANK rebuild progress, synced with Supabase.</p>
-    </div>
-    <div class="header-actions actions">
-      <button id="startHigh" type="button">Start next 3 high-priority tasks</button>
-      <button id="downloadHtml" type="button">Download backup HTML</button>
-      <button id="exportJson" type="button">Export JSON</button>
-      <label>
-        <input id="importJson" type="file" accept="application/json" class="hidden" />
-        <button type="button" id="importButton">Import JSON</button>
-      </label>
-      <button type="button" onclick="window.print()">Print</button>
-      <button id="logoutBtn" type="button" class="btn-muted">Sign out</button>
+    <div class="header-top">
+      <div class="header-brand">
+        <h1>Power Apps Rebuild Scrum Dashboard</h1>
+        <p>Team tracker for AWS - LAWA and AWS - BURBANK rebuild progress, synced with Supabase.</p>
+      </div>
+      <div class="header-actions actions">
+        <button id="startHigh" type="button">Start next 3 high-priority tasks</button>
+        <button id="downloadHtml" type="button">Download backup HTML</button>
+        <button id="exportJson" type="button">Export JSON</button>
+        <label>
+          <input id="importJson" type="file" accept="application/json" class="hidden" />
+          <button type="button" id="importButton">Import JSON</button>
+        </label>
+        <button type="button" onclick="window.print()">Print</button>
+        <button id="logoutBtn" type="button" class="danger">Sign out</button>
+      </div>
     </div>
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search task, section, owner, note, or acceptance criteria" />
