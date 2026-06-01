@@ -235,11 +235,11 @@
     <div class="between">
       <div>
         <h1>Power Apps Rebuild Scrum Dashboard</h1>
-        <p>Standalone tracker for AWS - LAWA and AWS - BURBANK rebuild progress.</p>
+        <p>Team tracker for AWS - LAWA and AWS - BURBANK rebuild progress, synced with Supabase.</p>
       </div>
       <div class="row actions">
         <button id="startHigh">Start next 3 high-priority tasks</button>
-        <button id="downloadHtml">Download updated HTML for SharePoint</button>
+        <button id="downloadHtml">Download backup HTML</button>
         <button id="exportJson">Export JSON</button>
         <label>
           <input id="importJson" type="file" accept="application/json" class="hidden" />
@@ -262,10 +262,10 @@
     <section class="card callout">
       <div class="between">
         <div>
-          <h2>SharePoint usage</h2>
-          <p>Upload this HTML file to SharePoint for read access. To publish your latest edits, use <strong>Download updated HTML for SharePoint</strong> and replace the SharePoint file.</p>
+          <h2>Team Sync</h2>
+          <p>This dashboard saves progress to Supabase so team members opening the GitHub Pages link can see the same board after refresh.</p>
         </div>
-        <span class="small">No server or database required</span>
+        <span class="small">Supabase project: jkcfnoruofyhzbawuldr</span>
       </div>
     </section>
 
@@ -277,7 +277,7 @@
           <h2>Daily Scrum Notes</h2>
           <p>Use this during the scrum for today's focus, blockers, handoffs, and decisions.</p>
         </div>
-        <span class="small">Auto-saved in this browser</span>
+        <span class="small">Auto-saved to Supabase</span>
       </div>
       <textarea id="dailyNote"></textarea>
     </section>
@@ -338,7 +338,7 @@
         <button id="deleteTask" class="danger">Delete task</button>
         <button id="closeEditor">Close</button>
       </div>
-      <p class="small" style="margin-top: 10px;">Custom tasks are deleted permanently. Baseline rebuild tasks are removed from this board and from the downloaded SharePoint copy.</p>
+      <p class="small" style="margin-top: 10px;">Custom tasks are deleted permanently. Baseline rebuild tasks are removed from the shared dashboard state.</p>
     </section>
 
     <section class="grid two">
@@ -389,8 +389,17 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE_KEY = "powerAppsScrumDashboard.v2";
+    const SUPABASE_URL = "https://jkcfnoruofyhzbawuldr.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_uHFy6PRqutYoUmH9derr2A_ZLX2BknB";
+    const REMOTE_STATE_ID = "main";
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+      : null;
+    let remoteReady = false;
+    let remoteSaveTimer = null;
     const STATUSES = ["Not Started", "In Progress", "On Hold", "Blocked", "Done"];
     const PRIORITIES = ["High", "Medium", "Low"];
     const APPS = ["Both", "LAWA", "BURBANK"];
@@ -444,6 +453,46 @@
       return bTime > aTime ? b : a;
     }
 
+    async function readRemoteState() {
+      if (!supabaseClient) return {};
+      try {
+        const { data, error } = await supabaseClient
+          .from("dashboard_state")
+          .select("state")
+          .eq("id", REMOTE_STATE_ID)
+          .maybeSingle();
+        if (error) throw error;
+        return data && data.state ? data.state : {};
+      } catch (error) {
+        console.error("Supabase load failed", error);
+        document.getElementById("lastSaved").textContent = "Supabase not ready. Run setup SQL first.";
+        return {};
+      }
+    }
+
+    async function saveRemoteStateNow() {
+      if (!supabaseClient || !remoteReady) return;
+      try {
+        const { error } = await supabaseClient
+          .from("dashboard_state")
+          .upsert({
+            id: REMOTE_STATE_ID,
+            state,
+            updated_at: new Date().toISOString()
+          });
+        if (error) throw error;
+        document.getElementById("lastSaved").textContent = "Saved to Supabase: " + new Date().toLocaleString();
+      } catch (error) {
+        console.error("Supabase save failed", error);
+        document.getElementById("lastSaved").textContent = "Saved locally. Supabase sync failed.";
+      }
+    }
+
+    function queueRemoteSave() {
+      window.clearTimeout(remoteSaveTimer);
+      remoteSaveTimer = window.setTimeout(saveRemoteStateNow, 500);
+    }
+
     let state = newestState(readEmbeddedState(), readLocalState());
     normalizeState();
 
@@ -468,7 +517,8 @@
       normalizeState();
       state.updatedAt = new Date().toISOString();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      document.getElementById("lastSaved").textContent = "Saved: " + new Date(state.updatedAt).toLocaleString();
+      document.getElementById("lastSaved").textContent = "Saved locally, syncing...";
+      queueRemoteSave();
     }
 
     function taskState(task) {
@@ -676,7 +726,7 @@
       const isCustom = isCustomTask(taskId);
       const message = isCustom
         ? "Delete this custom task permanently?"
-        : "Remove this baseline task from the board? It will stay hidden in this browser and in downloaded SharePoint HTML.";
+        : "Remove this baseline task from the shared board?";
       if (!confirm(message)) return;
       state.deletedTaskIds = Array.isArray(state.deletedTaskIds) ? state.deletedTaskIds : [];
       if (isCustom) {
@@ -774,7 +824,7 @@
     document.getElementById("downloadHtml").addEventListener("click", downloadSharePointHtml);
 
     document.getElementById("resetAll").addEventListener("click", () => {
-      if (!confirm("Reset all saved statuses, task edits, owners, notes, and daily scrum notes in this browser?")) return;
+      if (!confirm("Reset all shared statuses, task edits, owners, notes, and daily scrum notes?")) return;
       localStorage.removeItem(STORAGE_KEY);
       state = readEmbeddedState();
       normalizeState();
@@ -811,10 +861,32 @@
       reader.readAsText(file);
     });
 
-    populateFilters();
-    document.getElementById("dailyNote").value = state.dailyNote;
-    loadEditor("");
-    render();
+    async function initializeDashboard() {
+      populateFilters();
+      document.getElementById("dailyNote").value = state.dailyNote;
+      loadEditor("");
+      render();
+
+      const remoteState = await readRemoteState();
+      const hadRemoteState = !!(remoteState && remoteState.updatedAt);
+      state = newestState(state, remoteState);
+      normalizeState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      remoteReady = true;
+
+      populateFilters();
+      document.getElementById("dailyNote").value = state.dailyNote;
+      loadEditor("");
+      render();
+
+      if (hadRemoteState) {
+        document.getElementById("lastSaved").textContent = "Loaded from Supabase: " + new Date().toLocaleString();
+      } else {
+        await saveRemoteStateNow();
+      }
+    }
+
+    initializeDashboard();
   </script>
 </body>
 </html>
