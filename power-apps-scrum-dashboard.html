@@ -197,7 +197,7 @@
     .toolbar {
       margin-top: 14px;
       display: grid;
-      grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(150px, 190px)) auto;
+      grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(150px, 190px)) auto;
       gap: 10px;
     }
     .toolbar input { width: 100%; }
@@ -354,6 +354,7 @@
       <input id="search" type="search" placeholder="Search task, section, owner, note, or acceptance criteria" />
       <select id="statusFilter"></select>
       <select id="sectionFilter"></select>
+      <select id="ownerFilter"></select>
       <select id="priorityFilter"></select>
       <span id="lastSaved" class="small"></span>
     </div>
@@ -836,13 +837,28 @@
       return "low";
     }
 
+    function ownerNames() {
+      const names = new Set();
+      allTasks().forEach(task => {
+        const ts = taskState(task);
+        [ts.devOwner, ts.qaOwner].forEach(name => {
+          const trimmed = String(name || "").trim();
+          if (trimmed) names.add(trimmed);
+        });
+      });
+      return [...names].sort((a, b) => a.localeCompare(b));
+    }
+
     function filteredTasks() {
       const q = document.getElementById("search").value.trim().toLowerCase();
       const status = document.getElementById("statusFilter").value;
       const section = document.getElementById("sectionFilter").value;
+      const owner = document.getElementById("ownerFilter").value;
       const priority = document.getElementById("priorityFilter").value;
       return allTasks().filter(task => {
         const ts = taskState(task);
+        const devOwner = String(ts.devOwner || "").trim();
+        const qaOwner = String(ts.qaOwner || "").trim();
         const haystack = [
           taskNumberFor(task), task.app, task.section, task.title, task.type, task.priority, task.acceptance,
           ts.status, ts.devOwner, ts.qaOwner, ts.note, ts.devTarget, ts.qaTarget
@@ -850,6 +866,7 @@
         return (!q || haystack.includes(q)) &&
           (!status || ts.status === status) &&
           (!section || task.section === section) &&
+          (!owner || devOwner === owner || qaOwner === owner) &&
           (!priority || task.priority === priority);
       });
     }
@@ -937,8 +954,10 @@
 
     function populateFilters() {
       const sections = [...new Set(allTasks().map(t => t.section))].sort();
+      const owners = ownerNames();
       document.getElementById("statusFilter").innerHTML = `<option value="">All statuses</option>` + optionList(STATUSES, "");
       document.getElementById("sectionFilter").innerHTML = `<option value="">All sections</option>` + optionList(sections, "");
+      document.getElementById("ownerFilter").innerHTML = `<option value="">All owners</option>` + optionList(owners, "");
       document.getElementById("priorityFilter").innerHTML = `<option value="">All priorities</option>` + optionList(PRIORITIES, "");
       document.getElementById("editStatus").innerHTML = optionList(STATUSES, "Not Started");
       renderTaskSelect();
@@ -1165,7 +1184,7 @@
       const el = event.target;
       if (el.dataset && el.dataset.id && el.dataset.field) setTaskValue(el.dataset.id, el.dataset.field, el.value);
       if (el.id === "editTaskId") loadEditor(el.value);
-      if (["statusFilter", "sectionFilter", "priorityFilter"].includes(el.id)) render();
+      if (["statusFilter", "sectionFilter", "ownerFilter", "priorityFilter"].includes(el.id)) render();
     });
 
     document.addEventListener("input", event => {
