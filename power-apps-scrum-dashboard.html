@@ -291,30 +291,6 @@
     .login-card p { margin-bottom: 18px; }
     .login-card form { display: grid; gap: 14px; }
     .login-error { color: var(--red); font-size: 13px; min-height: 18px; }
-    .plan-group { margin-bottom: 18px; }
-    .plan-group:last-child { margin-bottom: 0; }
-    .plan-group h3 { font-size: 14px; margin: 0 0 10px; color: var(--accent); font-weight: 650; }
-    .plan-week-title { font-size: 16px; margin: 0 0 12px; color: var(--text); }
-    .plan-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: start;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-    .plan-row:last-child { border-bottom: 0; }
-    .plan-meta { text-align: right; white-space: nowrap; color: var(--muted); font-size: 12px; }
-    .plan-warning {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(245, 196, 81, 0.45);
-      background: rgba(245, 196, 81, 0.08);
-      color: var(--yellow);
-      font-size: 12px;
-    }
 
     @media (max-width: 1100px) {
       .grid.stats, .grid.two, .grid.form, .grid.form-wide, .toolbar { grid-template-columns: 1fr; }
@@ -395,13 +371,6 @@
         <span class="small">Auto-saved to Supabase</span>
       </div>
       <textarea id="dailyNote"></textarea>
-    </section>
-
-    <section class="card">
-      <details open>
-        <summary>2 Week Plan (May 31 – Jun 14)</summary>
-        <div id="twoWeekPlan" class="collapsible-body stack"></div>
-      </details>
     </section>
 
     <section class="card editor-card hidden" id="taskEditor">
@@ -558,94 +527,84 @@
       { id: "security-roles", app: "Both", section: "Shared UX", title: "Define permissions and role behavior", type: "Decision", priority: "High", status: "On Hold", acceptance: "Roles such as screener/admin/super admin are mapped to section access and record actions." }
     ];
 
-    function makePlanTask(id, section, owner, title, acceptance, type = "Functionality", priority = "High") {
-      return { id, app: "Both", section, title, type, priority, status: "Not Started", acceptance, devOwner: owner, qaOwner: "Sunil" };
+    const PLAN_SECTION = "2 Week Plan";
+
+    function makePlanTask(id, owner, title, acceptance, type = "Functionality", priority = "High") {
+      return { id, app: "Both", section: PLAN_SECTION, title, type, priority, status: "Not Started", acceptance, devOwner: owner, qaOwner: "Sunil" };
     }
 
-    const PLAN_SECTION_GROUPS = [
-      { section: "2 Week Plan · W1 D1-2", label: "Week 1 — Days 1–2 (May 31 – Jun 1): Auth + DB Baseline" },
-      { section: "2 Week Plan · W1 D3-4", label: "Week 1 — Days 3–4 (Jun 2–3): User APIs + Integration" },
-      { section: "2 Week Plan · W1 D5-6", label: "Week 1 — Days 5–6 (Jun 4–5): Azure Deployment" },
-      { section: "2 Week Plan · W1 D7 Go/No-Go", label: "Week 1 — Day 7 (Jun 6): Go / No-Go Check" },
-      { section: "2 Week Plan · W2 D8-9", label: "Week 2 — Days 8–9 (Jun 7–8): Assignments + Dispatch APIs + Data Seeding" },
-      { section: "2 Week Plan · W2 D10-11 LAX", label: "Week 2 — Days 10–11 (Jun 9–10): LAX End-to-End Flow Testing" },
-      { section: "2 Week Plan · W2 D10-11 BUR", label: "Week 2 — Days 10–11 (Jun 9–10): BUR End-to-End Flow Testing" },
-      { section: "2 Week Plan · W2 D12", label: "Week 2 — Day 12 (Jun 11): Bug Fixes Only" },
-      { section: "2 Week Plan · W2 D13-14", label: "Week 2 — Days 13–14 (Jun 12–14): Live Test Sessions" }
-    ];
-
     const TWO_WEEK_PLAN_TASKS = [
-      makePlanTask("w1d12-sso", "2 Week Plan · W1 D1-2", "Aradhya", "Configure SSO provider (Clerk / Entra ID) against Azure tenant", "SSO provider is configured against the Azure tenant and ready for integration testing."),
-      makePlanTask("w1d12-login", "2 Week Plan · W1 D1-2", "Aradhya", "Implement login screen — email/password + SSO button", "Login screen supports email/password and SSO entry point."),
-      makePlanTask("w1d12-axios", "2 Week Plan · W1 D1-2", "Aradhya", "Add Axios instance with auth token interceptor (Bearer on every request)", "Shared Axios client attaches Bearer token on every API request."),
-      makePlanTask("w1d12-claims", "2 Week Plan · W1 D1-2", "Aradhya", "Verify role claims are returned in token and accessible in frontend", "Role claims from auth token are parsed and available to the frontend."),
-      makePlanTask("w1d12-api-struct", "2 Week Plan · W1 D1-2", "Anshu", "Stand up API project structure on Azure (Functions or App Service)", "API project structure is deployed on Azure with baseline routing in place."),
-      makePlanTask("w1d12-sql", "2 Week Plan · W1 D1-2", "Anshu", "Connect to Azure SQL using aws_app login", "API connects to Azure SQL successfully using aws_app credentials."),
-      makePlanTask("w1d12-get-users", "2 Week Plan · W1 D1-2", "Anshu", "GET /api/users — with airport filter (?airport=LAX / ?airport=BUR)", "GET /api/users returns filtered results for LAX and BUR airport query params."),
-      makePlanTask("w1d12-post-users", "2 Week Plan · W1 D1-2", "Anshu", "POST /api/users — create employee record", "POST /api/users creates a valid employee record in Azure SQL."),
-      makePlanTask("w1d12-blob", "2 Week Plan · W1 D1-2", "Deepanshu", "Provision Azure Blob Storage account (awsrebuildstorage)", "Blob storage account awsrebuildstorage is provisioned and accessible."),
-      makePlanTask("w1d12-containers", "2 Week Plan · W1 D1-2", "Deepanshu", "Create containers: training-videos, certificates, incident-media", "Required blob containers exist with correct access configuration."),
-      makePlanTask("w1d12-sas", "2 Week Plan · W1 D1-2", "Deepanshu", "Configure SAS token generation endpoint for secure client-side uploads", "SAS token endpoint returns valid tokens for client-side uploads."),
-      makePlanTask("w1d12-upload-test", "2 Week Plan · W1 D1-2", "Deepanshu", "Test upload → retrieve round trip for a sample video file", "Sample video upload and retrieval completes successfully end-to-end."),
-      makePlanTask("w1d12-subscription", "2 Week Plan · W1 D1-2", "Matthew", "Confirm Azure subscription + resource group for App Service deployment", "Subscription and resource group are confirmed for App Service deployment."),
-      makePlanTask("w1d12-cicd", "2 Week Plan · W1 D1-2", "Matthew", "Set up CI/CD pipeline (GitHub Actions) pointing to Azure target", "GitHub Actions pipeline deploys successfully to the Azure target."),
-      makePlanTask("w1d12-db-network", "2 Week Plan · W1 D1-2", "Matthew", "Verify DB connectivity from Azure network (firewall rules, allowed IPs)", "Azure-hosted services can reach Azure SQL through approved network rules."),
-      makePlanTask("w1d34-get-user", "2 Week Plan · W1 D3-4", "Anshu", "GET /api/users/:id — single user retrieval", "GET /api/users/:id returns a single user record with expected fields."),
-      makePlanTask("w1d34-put-user", "2 Week Plan · W1 D3-4", "Anshu", "PUT /api/users/:id — update employee record", "PUT /api/users/:id updates employee data and persists to Azure SQL."),
-      makePlanTask("w1d34-patch-user", "2 Week Plan · W1 D3-4", "Anshu", "PATCH /api/users/:id/status — activate / deactivate / invite", "PATCH /api/users/:id/status supports activate, deactivate, and invite flows."),
-      makePlanTask("w1d34-search-users", "2 Week Plan · W1 D3-4", "Anshu", "GET /api/users/search?q= — name + badge number search", "User search returns matches by name and badge number."),
-      makePlanTask("w1d34-clerk-webhook", "2 Week Plan · W1 D3-4", "Anshu", "Wire Clerk webhook → users table sync", "Clerk webhook keeps users table synchronized with auth events."),
-      makePlanTask("w1d34-login-endpoint", "2 Week Plan · W1 D3-4", "Aradhya", "Connect login screen to real auth endpoint", "Login screen authenticates against the live auth endpoint."),
-      makePlanTask("w1d34-token-storage", "2 Week Plan · W1 D3-4", "Aradhya", "Implement token storage (secure cookie — no localStorage for tokens)", "Auth tokens are stored in secure cookies only."),
-      makePlanTask("w1d34-auth-guard", "2 Week Plan · W1 D3-4", "Aradhya", "Implement auth guard: redirect unauthenticated users to /login", "Unauthenticated users are redirected to /login."),
-      makePlanTask("w1d34-role-guards", "2 Week Plan · W1 D3-4", "Aradhya", "Role-based route guards: Full Access / APD / Dispatcher / Screener", "Route guards enforce Full Access, APD, Dispatcher, and Screener roles."),
-      makePlanTask("w1d34-video-upload", "2 Week Plan · W1 D3-4", "Deepanshu", "Wire video upload form → Blob Storage via SAS token", "Training video upload uses SAS token flow to Blob Storage."),
-      makePlanTask("w1d34-cert-upload", "2 Week Plan · W1 D3-4", "Deepanshu", "Wire certificate PDF upload → Blob Storage", "Certificate PDF upload uses Blob Storage successfully."),
-      makePlanTask("w1d34-get-videos", "2 Week Plan · W1 D3-4", "Deepanshu", "GET /api/training/videos — list with metadata and stream URL", "Training video list returns metadata and playable stream URLs."),
-      makePlanTask("w1d34-post-videos", "2 Week Plan · W1 D3-4", "Deepanshu", "POST /api/training/videos — admin upload endpoint", "Admin upload endpoint stores training video metadata and blob reference."),
-      makePlanTask("w1d56-deploy-web", "2 Week Plan · W1 D5-6", "All", "Deploy web app to Azure App Service (Node 20 LTS)", "Web app runs on Azure App Service using Node 20 LTS."),
-      makePlanTask("w1d56-deploy-api", "2 Week Plan · W1 D5-6", "All", "Deploy API layer to Azure Functions (or same App Service)", "API layer is deployed and reachable in Azure."),
-      makePlanTask("w1d56-env-vars", "2 Week Plan · W1 D5-6", "Matthew", "Set env vars in Azure App Service Configuration via Key Vault references", "Environment variables are configured through Key Vault references."),
-      makePlanTask("w1d56-prisma", "2 Week Plan · W1 D5-6", "Matthew", "Run prisma migrate deploy against production Azure SQL from CI pipeline", "prisma migrate deploy completes cleanly in CI against production Azure SQL."),
-      makePlanTask("w1d56-insights", "2 Week Plan · W1 D5-6", "Matthew", "Configure Application Insights for error monitoring", "Application Insights captures errors and telemetry from deployed services."),
-      makePlanTask("w1d56-smoke", "2 Week Plan · W1 D5-6", "All", "Smoke test: login → /schedule → no 500 errors", "Smoke test from login through /schedule completes without 500 errors."),
-      makePlanTask("w1d7-auth", "2 Week Plan · W1 D7 Go/No-Go", "Aradhya", "Go/No-Go: Auth — login with SSO works; roles resolve correctly", "Pass criteria: login with SSO works and roles resolve correctly.", "Decision"),
-      makePlanTask("w1d7-users", "2 Week Plan · W1 D7 Go/No-Go", "Anshu", "Go/No-Go: User APIs — all 5 endpoints return 200 with real DB data", "Pass criteria: all five user endpoints return 200 with real DB data.", "Decision"),
-      makePlanTask("w1d7-blob", "2 Week Plan · W1 D7 Go/No-Go", "Deepanshu", "Go/No-Go: Blob Storage — video upload + stream works end-to-end", "Pass criteria: video upload and stream works end-to-end.", "Decision"),
-      makePlanTask("w1d7-deploy", "2 Week Plan · W1 D7 Go/No-Go", "Matthew", "Go/No-Go: Deployment — app running on Azure, CI pipeline green", "Pass criteria: app is running on Azure and CI pipeline is green.", "Decision"),
-      makePlanTask("w1d7-db", "2 Week Plan · W1 D7 Go/No-Go", "Matthew", "Go/No-Go: DB — prisma migrate deploy clean, no drift", "Pass criteria: prisma migrate deploy is clean with no schema drift.", "Decision"),
-      makePlanTask("w2d89-get-assign", "2 Week Plan · W2 D8-9", "Anshu", "GET /api/assignments?airport=LAX&date= — Gantt view", "Assignments Gantt view loads for airport and date filters."),
-      makePlanTask("w2d89-post-submit", "2 Week Plan · W2 D8-9", "Anshu", "POST /api/assignments/submit — submit for APD approval", "Assignment submit flow sets status to Pending Approval."),
-      makePlanTask("w2d89-patch-approve", "2 Week Plan · W2 D8-9", "Anshu", "PATCH /api/assignments/:id/approve — APD approve/reject", "APD approve/reject updates assignment status correctly."),
-      makePlanTask("w2d89-get-dispatch", "2 Week Plan · W2 D8-9", "Anshu", "GET /api/dispatch?airport=LAX&date= — dispatch view", "Dispatch view returns expected assignments for airport and date."),
-      makePlanTask("w2d89-cert-api", "2 Week Plan · W2 D8-9", "Deepanshu", "GET /api/certificates + POST /api/certificates with renewal auto-calc", "Certificate APIs support create/list with renewal auto-calculation."),
-      makePlanTask("w2d89-cert-flag", "2 Week Plan · W2 D8-9", "Deepanshu", "Flag certificates where renewal is within 90 days", "Certificates nearing renewal within 90 days are flagged visibly."),
-      makePlanTask("w2d89-seed-lax", "2 Week Plan · W2 D8-9", "Matthew", "Seed LAX door reference data (seed_doors_lax.sql)", "LAX door reference seed script runs successfully."),
-      makePlanTask("w2d89-seed-bur", "2 Week Plan · W2 D8-9", "Matthew", "Seed BUR door reference data (seed_doors_bur.sql)", "BUR door reference seed script runs successfully."),
-      makePlanTask("w2d89-seed-airports", "2 Week Plan · W2 D8-9", "Matthew", "Seed airport records (LAX + BUR rows in airports table)", "Airports table contains LAX and BUR seed records."),
-      makePlanTask("w2d89-test-users", "2 Week Plan · W2 D8-9", "Matthew", "Create test user accounts for all 5 roles × 2 airports", "Test accounts exist for all five roles across LAX and BUR."),
-      makePlanTask("w2d89-sample-sched", "2 Week Plan · W2 D8-9", "Matthew", "Generate sample 2–3 day schedule for LAX and BUR", "Sample schedules exist for LAX and BUR covering 2–3 days."),
-      makePlanTask("w2d1011-lax-upload", "2 Week Plan · W2 D10-11 LAX", "All", "LAX flow: Full Access user uploads schedule → status = Available", "Uploaded LAX schedule appears with Available status."),
-      makePlanTask("w2d1011-lax-submit", "2 Week Plan · W2 D10-11 LAX", "All", "LAX flow: Submit for APD approval → status = Pending Approval", "Submitted LAX schedule moves to Pending Approval."),
-      makePlanTask("w2d1011-lax-approve", "2 Week Plan · W2 D10-11 LAX", "All", "LAX flow: APD Admin approves → status = Approved", "APD approval sets LAX assignment status to Approved."),
-      makePlanTask("w2d1011-lax-dispatch", "2 Week Plan · W2 D10-11 LAX", "All", "LAX flow: Dispatcher views approved assignments and assigns screeners", "Dispatcher can assign screeners to approved LAX assignments."),
-      makePlanTask("w2d1011-lax-mobile", "2 Week Plan · W2 D10-11 LAX", "All", "LAX flow: Screener mobile accept → start → stop", "Screener mobile accept/start/stop cycle completes for LAX."),
-      makePlanTask("w2d1011-lax-admin", "2 Week Plan · W2 D10-11 LAX", "All", "LAX flow: Admin views screening details + deviation log", "Admin can view screening details and deviation log for LAX."),
-      makePlanTask("w2d1011-bur-aws", "2 Week Plan · W2 D10-11 BUR", "All", "BUR flow: Super Admin creates AWS assignment → auto-approved (no APD layer)", "BUR AWS assignments auto-approve without APD step."),
-      makePlanTask("w2d1011-bur-allied", "2 Week Plan · W2 D10-11 BUR", "All", "BUR flow: Allied Admin creates CG/VI/EC assignment → self-approves", "BUR CG/VI/EC assignments self-approve correctly."),
-      makePlanTask("w2d1011-bur-dispatch", "2 Week Plan · W2 D10-11 BUR", "All", "BUR flow: Dispatcher view (BUR 24h window)", "BUR dispatcher view shows correct 24-hour assignment window."),
-      makePlanTask("w2d1011-bur-labels", "2 Week Plan · W2 D10-11 BUR", "All", "BUR flow: Verify BUR terminal labels A, B, West, North (not LAX labels)", "BUR terminals display A, B, West, and North labels only."),
-      makePlanTask("w2d1011-bur-isolation", "2 Week Plan · W2 D10-11 BUR", "All", "BUR flow: Verify no LAX data visible when logged in as BUR user", "BUR users cannot see LAX data in any view."),
-      makePlanTask("w2d12-bugfix", "2 Week Plan · W2 D12", "All", "Fix blocking bugs from Day 10–11 testing (auth → isolation → UI priority)", "No blocking bugs remain from Day 10–11 testing before live sessions."),
-      makePlanTask("w2d1314-lax-sched", "2 Week Plan · W2 D13-14", "All", "LAX live test: Schedule upload and Gantt view loads correctly", "LAX schedule upload and Gantt view pass live test checklist."),
-      makePlanTask("w2d1314-lax-apd", "2 Week Plan · W2 D13-14", "All", "LAX live test: APD approval flow works end-to-end", "LAX APD approval flow passes live test checklist."),
-      makePlanTask("w2d1314-lax-dispatch", "2 Week Plan · W2 D13-14", "All", "LAX live test: Dispatch table shows correct assignments for today's date", "LAX dispatch table shows correct assignments for today."),
-      makePlanTask("w2d1314-lax-screener", "2 Week Plan · W2 D13-14", "All", "LAX live test: Screener assignment accept / start / stop cycle", "LAX screener accept/start/stop cycle passes live test."),
-      makePlanTask("w2d1314-lax-reports", "2 Week Plan · W2 D13-14", "All", "LAX live test: Reports tab shows data", "LAX reports tab displays expected data in live test."),
-      makePlanTask("w2d1314-bur-aws", "2 Week Plan · W2 D13-14", "All", "BUR live test: AWS auto-approval works", "BUR AWS auto-approval passes live test checklist."),
-      makePlanTask("w2d1314-bur-self", "2 Week Plan · W2 D13-14", "All", "BUR live test: CG / VI / EC self-approval works", "BUR CG/VI/EC self-approval passes live test checklist."),
-      makePlanTask("w2d1314-bur-labels", "2 Week Plan · W2 D13-14", "All", "BUR live test: BUR terminal labels correct (A, B, West, North)", "BUR terminal labels pass live test checklist."),
-      makePlanTask("w2d1314-bur-isolation", "2 Week Plan · W2 D13-14", "All", "BUR live test: No LAX data visible when logged in as BUR user", "BUR data isolation passes live test checklist.")
+      makePlanTask("w1d12-sso", "Aradhya", "Configure SSO provider (Clerk / Entra ID) against Azure tenant", "SSO provider is configured against the Azure tenant and ready for integration testing."),
+      makePlanTask("w1d12-login", "Aradhya", "Implement login screen — email/password + SSO button", "Login screen supports email/password and SSO entry point."),
+      makePlanTask("w1d12-axios", "Aradhya", "Add Axios instance with auth token interceptor (Bearer on every request)", "Shared Axios client attaches Bearer token on every API request."),
+      makePlanTask("w1d12-claims", "Aradhya", "Verify role claims are returned in token and accessible in frontend", "Role claims from auth token are parsed and available to the frontend."),
+      makePlanTask("w1d12-api-struct", "Anshu", "Stand up API project structure on Azure (Functions or App Service)", "API project structure is deployed on Azure with baseline routing in place."),
+      makePlanTask("w1d12-sql", "Anshu", "Connect to Azure SQL using aws_app login", "API connects to Azure SQL successfully using aws_app credentials."),
+      makePlanTask("w1d12-get-users", "Anshu", "GET /api/users — with airport filter (?airport=LAX / ?airport=BUR)", "GET /api/users returns filtered results for LAX and BUR airport query params."),
+      makePlanTask("w1d12-post-users", "Anshu", "POST /api/users — create employee record", "POST /api/users creates a valid employee record in Azure SQL."),
+      makePlanTask("w1d12-blob", "Deepanshu", "Provision Azure Blob Storage account (awsrebuildstorage)", "Blob storage account awsrebuildstorage is provisioned and accessible."),
+      makePlanTask("w1d12-containers", "Deepanshu", "Create containers: training-videos, certificates, incident-media", "Required blob containers exist with correct access configuration."),
+      makePlanTask("w1d12-sas", "Deepanshu", "Configure SAS token generation endpoint for secure client-side uploads", "SAS token endpoint returns valid tokens for client-side uploads."),
+      makePlanTask("w1d12-upload-test", "Deepanshu", "Test upload → retrieve round trip for a sample video file", "Sample video upload and retrieval completes successfully end-to-end."),
+      makePlanTask("w1d12-subscription", "Matthew", "Confirm Azure subscription + resource group for App Service deployment", "Subscription and resource group are confirmed for App Service deployment."),
+      makePlanTask("w1d12-cicd", "Matthew", "Set up CI/CD pipeline (GitHub Actions) pointing to Azure target", "GitHub Actions pipeline deploys successfully to the Azure target."),
+      makePlanTask("w1d12-db-network", "Matthew", "Verify DB connectivity from Azure network (firewall rules, allowed IPs)", "Azure-hosted services can reach Azure SQL through approved network rules."),
+      makePlanTask("w1d34-get-user", "Anshu", "GET /api/users/:id — single user retrieval", "GET /api/users/:id returns a single user record with expected fields."),
+      makePlanTask("w1d34-put-user", "Anshu", "PUT /api/users/:id — update employee record", "PUT /api/users/:id updates employee data and persists to Azure SQL."),
+      makePlanTask("w1d34-patch-user", "Anshu", "PATCH /api/users/:id/status — activate / deactivate / invite", "PATCH /api/users/:id/status supports activate, deactivate, and invite flows."),
+      makePlanTask("w1d34-search-users", "Anshu", "GET /api/users/search?q= — name + badge number search", "User search returns matches by name and badge number."),
+      makePlanTask("w1d34-clerk-webhook", "Anshu", "Wire Clerk webhook → users table sync", "Clerk webhook keeps users table synchronized with auth events."),
+      makePlanTask("w1d34-login-endpoint", "Aradhya", "Connect login screen to real auth endpoint", "Login screen authenticates against the live auth endpoint."),
+      makePlanTask("w1d34-token-storage", "Aradhya", "Implement token storage (secure cookie — no localStorage for tokens)", "Auth tokens are stored in secure cookies only."),
+      makePlanTask("w1d34-auth-guard", "Aradhya", "Implement auth guard: redirect unauthenticated users to /login", "Unauthenticated users are redirected to /login."),
+      makePlanTask("w1d34-role-guards", "Aradhya", "Role-based route guards: Full Access / APD / Dispatcher / Screener", "Route guards enforce Full Access, APD, Dispatcher, and Screener roles."),
+      makePlanTask("w1d34-video-upload", "Deepanshu", "Wire video upload form → Blob Storage via SAS token", "Training video upload uses SAS token flow to Blob Storage."),
+      makePlanTask("w1d34-cert-upload", "Deepanshu", "Wire certificate PDF upload → Blob Storage", "Certificate PDF upload uses Blob Storage successfully."),
+      makePlanTask("w1d34-get-videos", "Deepanshu", "GET /api/training/videos — list with metadata and stream URL", "Training video list returns metadata and playable stream URLs."),
+      makePlanTask("w1d34-post-videos", "Deepanshu", "POST /api/training/videos — admin upload endpoint", "Admin upload endpoint stores training video metadata and blob reference."),
+      makePlanTask("w1d56-deploy-web", "All", "Deploy web app to Azure App Service (Node 20 LTS)", "Web app runs on Azure App Service using Node 20 LTS."),
+      makePlanTask("w1d56-deploy-api", "All", "Deploy API layer to Azure Functions (or same App Service)", "API layer is deployed and reachable in Azure."),
+      makePlanTask("w1d56-env-vars", "Matthew", "Set env vars in Azure App Service Configuration via Key Vault references", "Environment variables are configured through Key Vault references."),
+      makePlanTask("w1d56-prisma", "Matthew", "Run prisma migrate deploy against production Azure SQL from CI pipeline", "prisma migrate deploy completes cleanly in CI against production Azure SQL."),
+      makePlanTask("w1d56-insights", "Matthew", "Configure Application Insights for error monitoring", "Application Insights captures errors and telemetry from deployed services."),
+      makePlanTask("w1d56-smoke", "All", "Smoke test: login → /schedule → no 500 errors", "Smoke test from login through /schedule completes without 500 errors."),
+      makePlanTask("w1d7-auth", "Aradhya", "Go/No-Go: Auth — login with SSO works; roles resolve correctly", "Pass criteria: login with SSO works and roles resolve correctly.", "Decision"),
+      makePlanTask("w1d7-users", "Anshu", "Go/No-Go: User APIs — all 5 endpoints return 200 with real DB data", "Pass criteria: all five user endpoints return 200 with real DB data.", "Decision"),
+      makePlanTask("w1d7-blob", "Deepanshu", "Go/No-Go: Blob Storage — video upload + stream works end-to-end", "Pass criteria: video upload and stream works end-to-end.", "Decision"),
+      makePlanTask("w1d7-deploy", "Matthew", "Go/No-Go: Deployment — app running on Azure, CI pipeline green", "Pass criteria: app is running on Azure and CI pipeline is green.", "Decision"),
+      makePlanTask("w1d7-db", "Matthew", "Go/No-Go: DB — prisma migrate deploy clean, no drift", "Pass criteria: prisma migrate deploy is clean with no schema drift.", "Decision"),
+      makePlanTask("w2d89-get-assign", "Anshu", "GET /api/assignments?airport=LAX&date= — Gantt view", "Assignments Gantt view loads for airport and date filters."),
+      makePlanTask("w2d89-post-submit", "Anshu", "POST /api/assignments/submit — submit for APD approval", "Assignment submit flow sets status to Pending Approval."),
+      makePlanTask("w2d89-patch-approve", "Anshu", "PATCH /api/assignments/:id/approve — APD approve/reject", "APD approve/reject updates assignment status correctly."),
+      makePlanTask("w2d89-get-dispatch", "Anshu", "GET /api/dispatch?airport=LAX&date= — dispatch view", "Dispatch view returns expected assignments for airport and date."),
+      makePlanTask("w2d89-cert-api", "Deepanshu", "GET /api/certificates + POST /api/certificates with renewal auto-calc", "Certificate APIs support create/list with renewal auto-calculation."),
+      makePlanTask("w2d89-cert-flag", "Deepanshu", "Flag certificates where renewal is within 90 days", "Certificates nearing renewal within 90 days are flagged visibly."),
+      makePlanTask("w2d89-seed-lax", "Matthew", "Seed LAX door reference data (seed_doors_lax.sql)", "LAX door reference seed script runs successfully."),
+      makePlanTask("w2d89-seed-bur", "Matthew", "Seed BUR door reference data (seed_doors_bur.sql)", "BUR door reference seed script runs successfully."),
+      makePlanTask("w2d89-seed-airports", "Matthew", "Seed airport records (LAX + BUR rows in airports table)", "Airports table contains LAX and BUR seed records."),
+      makePlanTask("w2d89-test-users", "Matthew", "Create test user accounts for all 5 roles × 2 airports", "Test accounts exist for all five roles across LAX and BUR."),
+      makePlanTask("w2d89-sample-sched", "Matthew", "Generate sample 2–3 day schedule for LAX and BUR", "Sample schedules exist for LAX and BUR covering 2–3 days."),
+      makePlanTask("w2d1011-lax-upload", "All", "LAX flow: Full Access user uploads schedule → status = Available", "Uploaded LAX schedule appears with Available status."),
+      makePlanTask("w2d1011-lax-submit", "All", "LAX flow: Submit for APD approval → status = Pending Approval", "Submitted LAX schedule moves to Pending Approval."),
+      makePlanTask("w2d1011-lax-approve", "All", "LAX flow: APD Admin approves → status = Approved", "APD approval sets LAX assignment status to Approved."),
+      makePlanTask("w2d1011-lax-dispatch", "All", "LAX flow: Dispatcher views approved assignments and assigns screeners", "Dispatcher can assign screeners to approved LAX assignments."),
+      makePlanTask("w2d1011-lax-mobile", "All", "LAX flow: Screener mobile accept → start → stop", "Screener mobile accept/start/stop cycle completes for LAX."),
+      makePlanTask("w2d1011-lax-admin", "All", "LAX flow: Admin views screening details + deviation log", "Admin can view screening details and deviation log for LAX."),
+      makePlanTask("w2d1011-bur-aws", "All", "BUR flow: Super Admin creates AWS assignment → auto-approved (no APD layer)", "BUR AWS assignments auto-approve without APD step."),
+      makePlanTask("w2d1011-bur-allied", "All", "BUR flow: Allied Admin creates CG/VI/EC assignment → self-approves", "BUR CG/VI/EC assignments self-approve correctly."),
+      makePlanTask("w2d1011-bur-dispatch", "All", "BUR flow: Dispatcher view (BUR 24h window)", "BUR dispatcher view shows correct 24-hour assignment window."),
+      makePlanTask("w2d1011-bur-labels", "All", "BUR flow: Verify BUR terminal labels A, B, West, North (not LAX labels)", "BUR terminals display A, B, West, and North labels only."),
+      makePlanTask("w2d1011-bur-isolation", "All", "BUR flow: Verify no LAX data visible when logged in as BUR user", "BUR users cannot see LAX data in any view."),
+      makePlanTask("w2d12-bugfix", "All", "Fix blocking bugs from Day 10–11 testing (auth → isolation → UI priority)", "No blocking bugs remain from Day 10–11 testing before live sessions."),
+      makePlanTask("w2d1314-lax-sched", "All", "LAX live test: Schedule upload and Gantt view loads correctly", "LAX schedule upload and Gantt view pass live test checklist."),
+      makePlanTask("w2d1314-lax-apd", "All", "LAX live test: APD approval flow works end-to-end", "LAX APD approval flow passes live test checklist."),
+      makePlanTask("w2d1314-lax-dispatch", "All", "LAX live test: Dispatch table shows correct assignments for today's date", "LAX dispatch table shows correct assignments for today."),
+      makePlanTask("w2d1314-lax-screener", "All", "LAX live test: Screener assignment accept / start / stop cycle", "LAX screener accept/start/stop cycle passes live test."),
+      makePlanTask("w2d1314-lax-reports", "All", "LAX live test: Reports tab shows data", "LAX reports tab displays expected data in live test."),
+      makePlanTask("w2d1314-bur-aws", "All", "BUR live test: AWS auto-approval works", "BUR AWS auto-approval passes live test checklist."),
+      makePlanTask("w2d1314-bur-self", "All", "BUR live test: CG / VI / EC self-approval works", "BUR CG/VI/EC self-approval passes live test checklist."),
+      makePlanTask("w2d1314-bur-labels", "All", "BUR live test: BUR terminal labels correct (A, B, West, North)", "BUR terminal labels pass live test checklist."),
+      makePlanTask("w2d1314-bur-isolation", "All", "BUR live test: No LAX data visible when logged in as BUR user", "BUR data isolation passes live test checklist.")
     ];
 
     const BASE_TASKS = REBUILD_TASKS.concat(TWO_WEEK_PLAN_TASKS);
@@ -933,66 +892,6 @@
       }).join("");
     }
 
-    function renderTwoWeekPlan() {
-      const container = document.getElementById("twoWeekPlan");
-      if (!container) return;
-      let html = `<p class="plan-week-title">Week 1 — Infrastructure + Core APIs (May 31 – Jun 6)</p>`;
-      PLAN_SECTION_GROUPS.slice(0, 4).forEach(group => {
-        html += renderPlanGroup(group);
-        if (group.section === "2 Week Plan · W1 D7 Go/No-Go") {
-          html += `<div class="plan-warning">If any Week 1 go/no-go check fails, stop and fix before Week 2 begins.</div>`;
-        }
-      });
-      html += `<p class="plan-week-title" style="margin-top:18px;">Week 2 — Integration, Data, and Testing (Jun 7–14)</p>`;
-      PLAN_SECTION_GROUPS.slice(4).forEach(group => html += renderPlanGroup(group));
-      container.innerHTML = html;
-    }
-
-    function renderPlanGroup(group) {
-      const tasks = allTasks().filter(task => task.section === group.section);
-      if (!tasks.length) return "";
-      const rows = tasks.map(task => {
-        const ts = taskState(task);
-        return `<div class="plan-row">
-          <div><span class="pill">${escapeHtml(taskNumberFor(task))}</span> ${escapeHtml(task.title)}</div>
-          <div class="plan-meta">Dev: ${escapeHtml(ts.devOwner || task.devOwner || "-")} · QA: ${escapeHtml(ts.qaOwner || task.qaOwner || "Sunil")} · <span class="pill ${pillClass(ts.status)}">${escapeHtml(ts.status)}</span></div>
-        </div>`;
-      }).join("");
-      return `<div class="plan-group"><h3>${escapeHtml(group.label)}</h3>${rows}</div>`;
-    }
-
-    function buildPlanReportHtml() {
-      let html = `<section class="card"><h2 style="margin:0 0 10px;font-size:18px;">2 Week Plan (May 31 – Jun 14)</h2>`;
-      html += `<p style="margin-bottom:12px;">Week 1 — Infrastructure + Core APIs (May 31 – Jun 6)</p>`;
-      PLAN_SECTION_GROUPS.slice(0, 4).forEach(group => {
-        html += buildPlanReportGroup(group);
-        if (group.section === "2 Week Plan · W1 D7 Go/No-Go") {
-          html += `<p style="color:#f5c451;font-size:12px;">If any Week 1 go/no-go check fails, stop and fix before Week 2 begins.</p>`;
-        }
-      });
-      html += `<p style="margin:14px 0 12px;">Week 2 — Integration, Data, and Testing (Jun 7–14)</p>`;
-      PLAN_SECTION_GROUPS.slice(4).forEach(group => html += buildPlanReportGroup(group));
-      html += `</section>`;
-      return html;
-    }
-
-    function buildPlanReportGroup(group) {
-      const tasks = allTasks().filter(task => task.section === group.section);
-      if (!tasks.length) return "";
-      const rows = tasks.map(task => {
-        const ts = taskState(task);
-        return `<tr>
-          <td>${escapeHtml(taskNumberFor(task))}</td>
-          <td>${escapeHtml(task.title)}</td>
-          <td>${escapeHtml(ts.devOwner || task.devOwner || "-")}</td>
-          <td>${escapeHtml(ts.qaOwner || task.qaOwner || "Sunil")}</td>
-          <td>${escapeHtml(ts.status)}</td>
-        </tr>`;
-      }).join("");
-      return `<div style="margin-bottom:14px;"><h3 style="font-size:14px;margin:0 0 8px;color:#5aa7ff;">${escapeHtml(group.label)}</h3>
-        <table><thead><tr><th>Task ID</th><th>Task</th><th>Dev owner</th><th>QA owner</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-    }
-
     function renderRows() {
       const rows = filteredTasks();
       document.getElementById("visibleCount").textContent = `${rows.length} visible of ${allTasks().length} tasks`;
@@ -1131,7 +1030,6 @@
       renderStats();
       renderLanes();
       renderSections();
-      renderTwoWeekPlan();
       renderRows();
       if (state.updatedAt) {
         document.getElementById("lastSaved").textContent = "Saved: " + new Date(state.updatedAt).toLocaleString();
@@ -1234,7 +1132,6 @@
       <h2 style="margin:0 0 10px;font-size:18px;">Daily Scrum Notes</h2>
       <div class="notes">${escapeHtml(state.dailyNote || "")}</div>
     </section>
-    ${buildPlanReportHtml()}
     <section class="card">
       <h2 style="margin:0 0 10px;font-size:18px;">Sprint Backlog Tracker</h2>
       <p style="margin-bottom:12px;">${tasks.length} tasks in this report.</p>
